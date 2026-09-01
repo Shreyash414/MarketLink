@@ -1,0 +1,9 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+# Raw datasets
+data/raw/
+
+# Generated/processed datasets
+data/processed/
