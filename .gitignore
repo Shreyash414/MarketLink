@@ -1,3 +1,14 @@
+# Python / AI / ML
+.venv/
+.env
+__pycache__/
+*.pyc
+# Raw datasets
+data/raw/
+# Generated/processed datasets
+data/processed/
+
+# Java / Spring Boot
 HELP.md
 target/
 backend/target/
