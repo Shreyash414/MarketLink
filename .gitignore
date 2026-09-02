@@ -1,53 +1,152 @@
+# ================================
+
 # Python / AI / ML
+
+# ================================
+
 .venv/
+venv/
+env/
+
 .env
-__pycache__/
-*.pyc
-# Raw datasets
+.env.*
+!.env.example
+
+**pycache**/
+*.py[cod]
+*.pyo
+
+# Jupyter
+
+.ipynb_checkpoints/
+
+# ================================
+
+# Python IDE
+
+# ================================
+
+.vscode/
+.idea/
+
+# ================================
+
+# Raw Datasets
+
+# ================================
+
 data/raw/
-# Generated/processed datasets
+
+# ================================
+
+# Generated / Processed Datasets
+
+# ================================
+
 data/processed/
 
-# Java / Spring Boot
+# ================================
+
+# Java / Spring Boot / Maven
+
+# ================================
+
 HELP.md
+
 target/
 backend/target/
+
+# Maven Wrapper
+
 !.mvn/wrapper/maven-wrapper.jar
+
+# Preserve source/test target directories if intentionally tracked
+
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# Maven distributions
+
+apache-maven-*/
+backend/apache-maven-*/
+
+# ================================
+
+# Spring Tool Suite / Eclipse
+
+# ================================
+
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
+# ================================
+
+# IntelliJ IDEA
+
+# ================================
+
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
+# ================================
+
+# NetBeans
+
+# ================================
+
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
+
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# ================================
 
-### Mac OS ###
-.DS_Store
+# Android / Gradle
 
-### Others ###
+# ================================
+
+.gradle/
+local.properties
+
+# Android build output
+
+*/build/
+**/.cxx/
+
+# ================================
+
+# Firebase / Credentials
+
+# ================================
+
+google-services.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
+
+# ================================
+
+# Logs
+
+# ================================
+
 *.log
-apache-maven-*
-backend/apache-maven-*
+
+# ================================
+
+# OS
+
+# ================================
+
+.DS_Store
+Thumbs.db
