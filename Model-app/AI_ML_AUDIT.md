@@ -35,6 +35,7 @@ This document provides a comprehensive audit of all data, machine learning, reco
 | `src/models/model_quality_gate.py` | Centralized production-safety gating layer | **VALIDATED** | Provides `get_model_quality_metadata`, `can_use_model`, `evaluate_model_gating`. Reads `model_registry.json` at runtime and enforces farmer-facing gating rules deterministically. |
 | `src/data/data_reliability.py` | Centralized data freshness & inference reliability layer | **VALIDATED** | Provides `DataReliabilityResult`, `evaluate_data_freshness`, `validate_price_data`, `evaluate_historical_sufficiency`, `evaluate_data_reliability`. Prevents stale, malformed, or insufficient input data from reaching models. |
 | `src/contracts/inference_contract.py` | Production inference contract & integration readiness | **VALIDATED** | Provides canonical dataclasses (`ContractMetadata`, `CanonicalInferenceItem`, `CanonicalRecommendationResponse`), validation logic, and helpers for backend integration. |
+| `src/data/market_data_service.py` | Government Mandi Market Data Explorer service | **VALIDATED** | Decoupled market data service (`get_current_market_data`, `get_historical_market_data`, `get_available_market_options`) providing raw data queries without ML dependency. |
 
 ---
 
@@ -51,6 +52,7 @@ This document provides a comprehensive audit of all data, machine learning, reco
 - **`model_quality.py`**: Clean. Dynamically benchmarks genuine trained models from registry and split paths.
 - **`data_reliability.py`**: Clean. Parameterized freshness age thresholds, session counts, and validation checks.
 - **`inference_contract.py`**: Clean. Dynamic canonical response builder with strict validation rules.
+- **`market_data_service.py`**: Clean. Case-insensitive commodity/market matching and clean JSON serialization.
 
 ### Fixed Items in Recent Sessions
 - `src/recommend_mandi.py`: Removed hardcoded `print("Commodity : Onion")` and added parameter documentation.
@@ -58,11 +60,12 @@ This document provides a comprehensive audit of all data, machine learning, reco
 ---
 
 ## 3. Test Suite Baseline
-- **101 Automated Tests**: Comprehensive unit & integration test coverage across geospatial, economics, risk & confidence, ingestion, feature generation, predictor, multi-commodity inference, historical quality, model benchmarking/gating, model quality gate enforcement, data freshness & reliability, and production inference contracts.
-- **Current Status**: **101/101 Passing (100%)**.
+- **118 Automated Tests**: Comprehensive unit & integration test coverage across geospatial, economics, risk & confidence, ingestion, feature generation, predictor, multi-commodity inference, historical quality, model benchmarking/gating, model quality gate enforcement, data freshness & reliability, production inference contracts, and market data explorer service.
+- **Current Status**: **118/118 Passing (100%)**.
 - **New in Task 7**: `tests/test_model_quality_gate.py` (17 tests) — validates gating rules for all usage statuses, end-to-end recommender filtering, missing model handling, and structured warning propagation.
 - **New in Task 8**: `tests/test_data_reliability.py` (22 tests) — validates freshness evaluation, price validation, historical warm-up sufficiency, CACHE vs LIVE semantics, stale cache warning policy, and end-to-end reliability integration.
 - **New in Task 9**: `tests/test_inference_contract.py` (20 tests) — validates canonical contract building, validation rules, status enums, JSON serialization, safety gate invariants, and backward compatibility.
+- **New in Task 11**: `tests/test_market_data_service.py` (17 tests) — validates current market data retrieval, historical chart points, options discovery, date range filtering, empty response safety, `LIVE`/`CACHE` status tags, stale cache warnings, JSON serialization, and zero ML invocation.
 - **Task 10 Final Audit**: Complete repository audit verified, real-data provenance confirmed, zero security leaks found, latency measured, and handoff documentation created (`docs/AI_ML_BACKEND_HANDOFF.md`, `docs/FINAL_AI_ML_PRODUCTION_READINESS_REPORT.md`). Final Classification: `PRODUCTION_READY_WITH_WARNINGS`.
 
 

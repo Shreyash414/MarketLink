@@ -645,6 +645,31 @@ Latency measurement script probing pipeline execution speed across target commod
 
 **System Final Status:** `PRODUCTION_READY_WITH_WARNINGS`
 
+---
+
+## Section 18 — Phase 27: Task 11 Government Mandi Market Data Explorer (2026-09-03)
+
+### 18.1 Overview
+Implemented an independent, reusable **Government Mandi Market Data Explorer** capability (`src/data/market_data_service.py`) and test suite (`tests/test_market_data_service.py`) allowing farmers to query current mandi prices, historical price chart data, and available market options discovery across any commodity and mandi present in government data — completely decoupled from ML prediction models.
+
+### 18.2 Key Deliverables & Features
+
+#### 18.2.1 `src/data/market_data_service.py` (NEW)
+- `get_current_market_data(commodity, market)`: returns `CurrentMarketDataResponse` containing validated government mandi record (`min_price`, `max_price`, `modal_price`, `arrival`, `unit`, `source`, `freshness_status`, `data_age_days`, `warning`).
+- `get_historical_market_data(commodity, market, start_date, end_date)`: returns `HistoricalMarketDataResponse` containing chronologically sorted and deduplicated price points format-ready for frontend charts.
+- `get_available_market_options()`: returns `MarketOptionsResponse` discovering available commodities, markets, states, and districts.
+
+#### 18.2.2 `tests/test_market_data_service.py` (NEW)
+- 17 unit tests verifying current data retrieval, missing arrival handling, historical sorting, date range filtering, invalid date range error handling, empty result safety, `LIVE`/`CACHE` status tags, stale cache warnings, options discovery, JSON serialization, zero ML invocation, and backward compatibility.
+
+### 18.3 Architectural Invariants
+- Zero invocation of XGBoost, `ModelPredictor`, `ModelQualityGate`, `MandiRecommender`, `RiskEngine`, or `EconomicsEngine`.
+- Data reliability tags (`LIVE`, `CACHE`, `LIVE_FRESH`, `CACHE_FRESH`, `CACHE_STALE`) strictly preserved.
+
+### 18.4 Final Test Suite Result
+`Ran 118 tests in 324.510s — OK` (101 existing + 17 new tests, 0 failures, 0 skipped).
+
+
 
 
 

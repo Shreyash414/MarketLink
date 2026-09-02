@@ -319,6 +319,18 @@ Task 10 performed the final production-readiness validation, data provenance aud
 
 ---
 
+## Task 11 — Government Market Data Explorer — COMPLETE & VALIDATED
+
+Task 11 implemented an independent, reusable **Government Mandi Market Data Explorer** (`src/data/market_data_service.py`) allowing farmers to query current mandi prices, historical price chart series, and available market discovery across any commodity and mandi available in government sources — completely decoupled from ML prediction models.
+
+**Key Deliverables & Invariants:**
+- `src/data/market_data_service.py` — core service exposing `get_current_market_data()`, `get_historical_market_data()`, and `get_available_market_options()`.
+- `tests/test_market_data_service.py` — 17 unit tests verifying current data, historical sorting, date range filtering, empty response safety, `LIVE`/`CACHE` status tags, stale cache warnings, options discovery, JSON serialization, and zero ML invocation.
+- Strict Architectural Separation: Market Data functions do NOT call XGBoost, `ModelPredictor`, `ModelQualityGate`, `MandiRecommender`, `RiskEngine`, or `EconomicsEngine`.
+- Test suite: **118/118 tests passing** (101 existing + 17 new tests, 0 failures, 0 skipped).
+
+---
+
 ## Bottom line
 
 **Done for real:**
@@ -332,9 +344,11 @@ Task 10 performed the final production-readiness validation, data provenance aud
 - **Task 7 COMPLETE:** Production-grade model quality gating layer enforced across all inference and recommendation paths (59/59 passing tests).
 - **Task 8 COMPLETE:** Real-time data freshness & inference reliability layer implemented and integrated across the pipeline (81/81 passing tests).
 - **Task 9 COMPLETE:** Production inference contract & integration readiness implemented, validated, and documented (101/101 passing tests).
-- **Task 10 COMPLETE:** Final AI/ML production validation, security audit, latency benchmarking, readiness report, and backend handoff completed (101/101 passing tests). Final System Status: `PRODUCTION_READY_WITH_WARNINGS`.
+- **Task 10 COMPLETE:** Final AI/ML production validation, security audit, latency benchmarking, readiness report, and backend handoff completed (101/101 passing tests).
+- **Task 11 COMPLETE:** Government Mandi Market Data Explorer built, validated, and documented (118/118 passing tests).
 
-**ALL AI/ML TASKS (TASKS 1–10) ARE NOW FULLY COMPLETE AND VALIDATED.**
+**ALL AI/ML & MARKET DATA TASKS (TASKS 1–11) ARE NOW FULLY COMPLETE AND VALIDATED.**
+
 
 
 

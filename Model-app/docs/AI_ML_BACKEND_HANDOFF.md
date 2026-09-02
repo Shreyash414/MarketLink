@@ -159,8 +159,40 @@ Mandis inside `recommendations` are sorted in descending order by **`net_return`
 - `total_cost = transport_cost + market_fee`
 - `net_return = gross_revenue - total_cost`
 
+## 6. Government Market Data Explorer Integration
+
+The backend can also consume raw government mandi data (current prices, historical chart points, and available options discovery) independently of ML prediction.
+
+### Python API Integration:
+
+```python
+from src.data.market_data_service import (
+    get_current_market_data,
+    get_historical_market_data,
+    get_available_market_options,
+)
+
+# 1. Fetch current government market record
+current_res = get_current_market_data(commodity="Potato", market="Agra")
+json_current = current_res.to_json(indent=2)
+
+# 2. Fetch historical price chart data
+historical_res = get_historical_market_data(
+    commodity="Potato",
+    market="Agra",
+    start_date="2024-01-01",
+    end_date="2024-06-30"
+)
+json_historical = historical_res.to_json(indent=2)
+
+# 3. Discover available commodities and markets
+options_res = get_available_market_options()
+json_options = options_res.to_json(indent=2)
+```
+
 ---
 
-## 6. Full Contract Documentation
+## 7. Full Contract Documentation
 For complete field-by-field descriptions, status enum specifications, and detailed JSON examples, refer to:
-[docs/AI_INFERENCE_CONTRACT.md](file:///c:/Users/alone/OneDrive/Desktop/SIH26132/docs/AI_INFERENCE_CONTRACT.md)
+[docs/AI_INFERENCE_CONTRACT.md](file:///c:/Users/alone/OneDrive/Desktop/SIH26132/docs/AI_INFERENCE_CONTRACT.md) and [docs/PROJECT_COMPLETE_DOCUMENTATION.md](file:///c:/Users/alone/OneDrive/Desktop/SIH26132/docs/PROJECT_COMPLETE_DOCUMENTATION.md).
+
