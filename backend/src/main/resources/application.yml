@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: marketlink-backend
+  datasource:
+    url: jdbc:h2:mem:marketlinkdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  data:
+    mongodb:
+      uri: mongodb://${MONGODB_HOST:localhost}:${MONGODB_PORT:27017}/${MONGODB_DATABASE:marketlink}
+      auto-index-creation: true
+
+marketlink:
+  image:
+    max-width: 1600
+    max-height: 1600
+    jpeg-quality: 0.75
+    max-stored-size: 5000000
+  security:
+    # PROTOTYPE MODE:
+    # Set to true for September 5 SIH demonstration.
+    # When true, marketplace access requires: Authenticated + Active + Correct Role (UIDAI verification bypassed).
+    # When false (production default), marketplace access strictly requires VerificationState == VERIFIED.
+    prototype-mode: true
+    jwt:
+      secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      expiration-ms: 86400000 # 24 hours
+      refresh-expiration-ms: 604800000 # 7 days
+    uidai:
+      mock-enabled: true
+      valid-test-otp: "123456"
+      failing-test-otp: "000000"
+
+server:
+  port: 8080
