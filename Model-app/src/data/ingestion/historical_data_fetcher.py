@@ -31,6 +31,7 @@ import requests
 from src.config.config import (
     API_BASE_URL,
     API_RESOURCE_ID_HISTORICAL,
+    CACHE_DIR,
     DATA_GOV_API_KEY,
     HIST_API_CONNECT_TIMEOUT,
     HIST_API_MAX_RETRIES,
@@ -120,7 +121,7 @@ class HistoricalDataFetcher:
         self.max_retries = max_retries
         self.timeout = (connect_timeout, read_timeout)
         self.api_url = f"{API_BASE_URL}{self.resource_id}"
-        self.checkpoint_dir = Path("data/cache/historical_checkpoints")
+        self.checkpoint_dir = CACHE_DIR / "historical_checkpoints"
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     def _require_key(self) -> str:

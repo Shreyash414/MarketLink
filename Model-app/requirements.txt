@@ -1,0 +1,26 @@
+# MarketLink Model-app Runtime & Testing Dependencies
+# Core ML, Numerical Computing & Time-Series Inference
+numpy==2.5.2
+pandas==3.0.5
+xgboost==3.4.1
+scikit-learn==1.9.0
+scipy==1.18.1
+joblib==1.6.0
+
+# Ingestion & Configuration
+requests==2.34.2
+python-dotenv==1.2.3
+
+# API & Async Messaging
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic==2.13.5
+pika==1.4.4
+
+# Redis Job Storage (Phase 1B)
+redis==8.1.0
+fakeredis==2.37.1
+
+# Testing & Verification
+pytest==9.1.1
+httpx==0.28.1

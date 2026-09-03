@@ -4,7 +4,7 @@
 
 MarketLink is an agricultural marketplace connecting farmers directly with buyers to eliminate intermediaries and facilitate fair price discovery. The backend is responsible for identity management, secure lot lifecycle processing, optimized image handling, voice-assisted operations, and robust REST APIs that drive the native Android client application.
 
-**Current Implementation Status:** Phase 1, Phase 2, and Phase 3 (Audit) are complete. The backend is fully integrated, stable, and ready for Android consumption.
+**Current Implementation Status:** Phase 1, Phase 2, Phase 3 (Audit), Phase 2A/2B (Model-app Integration), and the AI Query Routing Refactor are complete. The backend is fully integrated, stable, and verified with 147 passing tests.
 
 ---
 
@@ -15,6 +15,7 @@ Farmers often struggle to find fair prices for their produce due to a lack of di
 - **Market-Linkage:** Farmers list their produce (Lots) directly to buyers.
 - **Price Discovery:** Real-time and historical market price data helps farmers make informed decisions about when and where to sell.
 - **Fair Play:** The system ensures secure transactions through explicit buyer offers and farmer acceptances.
+- **Deterministic AI Advisory:** Intelligent routing dispatches natural-language farmer queries to AGMARKNET spot data, XGBoost price predictions, geospatial mandi recommendations, or Ollama agronomy advisory.
 
 > **Important:** In MarketLink, markets are *not* intermediaries. The `Market` entity represents geographical market/location reference data used exclusively for market context and price discovery analysis. Farmers connect *directly* with buyers.
 
@@ -23,19 +24,21 @@ Farmers often struggle to find fair prices for their produce due to a lack of di
 ## Backend Responsibilities
 
 **Included:**
-- Authentication & Authorization
+- Authentication & Authorization (Stateless JJWT)
 - Farmer & Buyer Profiles
 - Crop & Market Master Data Management
 - Produce Lot Lifecycle Management
 - Optimized Multipart Image Processing & Persistence
-- Quality Analysis Result Abstraction
-- Market Price Observation & Querying
+- Location Domain Model (`@Embeddable Location` with bounds verification)
+- AI Advisory & Deterministic Query Routing (`AiQueryClassifier`, `AiQueryRouter`)
+- Model-App HTTP Integration (`ModelAppClient`, `HttpModelAppClient` via Spring 6 `RestClient`)
+- Market Price Observation & AGMARKNET Data Querying
 - Buyer Offers (Creation, Acceptance, Rejection, Cancellation)
 - Voice-Channel Operations (Price queries, pending offers)
-- OpenAPI Documentation
+- OpenAPI Documentation (SpringDoc 2.6.0)
 
 **Intentionally Excluded:**
-- ML model training & development (The backend expects model-agnostic `QualityAnalysisResult` payloads)
+- Direct ML model execution or training inside Spring (Spring acts as gateway/orchestrator; ML belongs in Model-app)
 - Complex financial settlement & payment gateways
 - FPO (Farmer Producer Organization) functionality
 - Firebase Storage & Realtime DB (We use PostgreSQL and MongoDB exclusively)
@@ -253,7 +256,7 @@ To run the full test suite:
 ```bash
 ./mvnw clean test
 ```
-*Current test suite result: 88 tests run, 0 failures, 0 errors.*
+*Current test suite result: 147 tests run, 0 failures, 0 errors (100% pass rate in 11.63s).*
 
 To run the application locally:
 ```bash
@@ -278,6 +281,8 @@ The server will start on port `8080`.
 **Completed:**
 - Phase 1 & 2: Core domain logic and integrations.
 - Phase 3: Comprehensive API and architectural audit.
+- Phase 2A & 2B: FastAPI Model-app integration, ModelAppClient, Location domain value object.
+- AI Query Routing Refactor: Deterministic AiQueryClassifier & AiQueryRouter for multi-capability routing.
 
 **Future:**
 - Native Kotlin Android Application integration.

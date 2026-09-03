@@ -6,6 +6,7 @@ Supports multi-commodity model resolution and dynamic model loading.
 """
 from dataclasses import dataclass
 from pathlib import Path
+import threading
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -14,7 +15,7 @@ import xgboost as xgb
 
 from src.config.commodity_registry import get_commodity_config
 from src.config.config import DEFAULT_COMMODITY, MODEL_DIR, get_model_dir
-from src.config.model_registry import get_registered_model
+from src.config.model_registry import get_registered_model, load_model_registry
 from src.utils.logger import logger
 
 
@@ -47,6 +48,12 @@ class ModelPredictor:
     Supports multi-commodity model discovery, registry lookup, caching, quality gating, and data reliability.
     """
 
+    # Process-wide thread-safe model and feature cache
+    # Cache key: (commodity_clean, market_clean, optional_custom_dir_str)
+    _shared_models: Dict[Tuple[str, str, Optional[str]], xgb.XGBRegressor] = {}
+    _shared_features: Dict[Tuple[str, str, Optional[str]], List[str]] = {}
+    _cache_lock = threading.Lock()
+
     def __init__(
         self,
         default_commodity: str = DEFAULT_COMMODITY,
@@ -65,6 +72,59 @@ class ModelPredictor:
             return self.custom_model_dir
         return get_model_dir(commodity=commodity)
 
+    @classmethod
+    def is_model_cached(
+        cls,
+        market: str,
+        commodity: Optional[str] = None,
+        custom_model_dir: Optional[Path] = None
+    ) -> bool:
+        """
+        Check if a specific model is currently cached in process memory.
+        """
+        comm_clean = (commodity or DEFAULT_COMMODITY).strip().lower()
+        market_clean = market.strip().lower()
+        dir_key = str(Path(custom_model_dir).resolve()) if custom_model_dir else None
+        with cls._cache_lock:
+            return (comm_clean, market_clean, dir_key) in cls._shared_models
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """
+        Clear all process-wide cached models and feature sets.
+        """
+        with cls._cache_lock:
+            cls._shared_models.clear()
+            cls._shared_features.clear()
+
+    @classmethod
+    def get_loaded_models_count(cls) -> int:
+        """
+        Return the number of models currently cached in-memory across the process.
+        """
+        with cls._cache_lock:
+            return len(cls._shared_models)
+
+    def preload_models(self, commodity: Optional[str] = None) -> Dict[str, bool]:
+        """
+        Preload models for a specific commodity or all registered commodities into the shared cache.
+        Returns a mapping of (commodity:market) -> load_success.
+        """
+        registry = load_model_registry()
+        results: Dict[str, bool] = {}
+        for comm_name, markets in registry.items():
+            if commodity and comm_name.lower() != commodity.strip().lower():
+                continue
+            for mkt_name in markets.keys():
+                key = f"{comm_name}:{mkt_name}"
+                try:
+                    self.load_market_model(market=mkt_name, commodity=comm_name)
+                    results[key] = True
+                except Exception as e:
+                    logger.warning(f"Could not preload model for {key}: {e}")
+                    results[key] = False
+        return results
+
     def load_market_model(
         self,
         market: str,
@@ -72,58 +132,84 @@ class ModelPredictor:
     ) -> Tuple[xgb.XGBRegressor, List[str]]:
         """
         Load pre-trained model and required feature list for a market and commodity.
+        Utilizes thread-safe process-level cache so expensive model files are loaded
+        from disk only once and reused across subsequent requests and worker calls.
         """
         comm = commodity or self.default_commodity
         comm_clean = comm.strip().lower()
         market_clean = market.strip().lower()
         cache_key = (comm_clean, market_clean)
+        dir_key = str(self.custom_model_dir.resolve()) if self.custom_model_dir else None
+        shared_cache_key = (comm_clean, market_clean, dir_key)
 
+        # 1. Fast check in instance-level cache
         if cache_key in self._loaded_models:
             return self._loaded_models[cache_key], self._loaded_features[cache_key]
 
-        target_dir = self.get_model_dir_for_commodity(comm)
+        # 2. Check process-level shared cache with thread safety
+        with self._cache_lock:
+            if shared_cache_key in self._shared_models:
+                model = self._shared_models[shared_cache_key]
+                feature_list = self._shared_features[shared_cache_key]
+                self._loaded_models[cache_key] = model
+                self._loaded_features[cache_key] = feature_list
+                return model, feature_list
 
-        # Check registered model metadata if available
-        reg_info = get_registered_model(commodity=comm, market=market)
-        if reg_info and "model_file" in reg_info and "feature_file" in reg_info:
-            model_file = target_dir / reg_info["model_file"]
-            feature_file = target_dir / reg_info["feature_file"]
-        else:
-            model_file = target_dir / f"{market_clean}_final_model.json"
-            feature_file = target_dir / f"{market_clean}_final_features.csv"
+            target_dir = self.get_model_dir_for_commodity(comm)
 
-        # Fallback to default MODEL_DIR if commodity is Onion or not found in target_dir
-        if not model_file.exists() and MODEL_DIR.exists():
-            fallback_model = MODEL_DIR / f"{market_clean}_final_model.json"
-            fallback_feature = MODEL_DIR / f"{market_clean}_final_features.csv"
-            if fallback_model.exists() and fallback_feature.exists():
-                model_file = fallback_model
-                feature_file = fallback_feature
+            # Check registered model metadata if available
+            reg_info = get_registered_model(commodity=comm, market=market)
+            if reg_info and "model_file" in reg_info and "feature_file" in reg_info:
+                model_file = target_dir / reg_info["model_file"]
+                feature_file = target_dir / reg_info["feature_file"]
+            else:
+                model_file = target_dir / f"{market_clean}_final_model.json"
+                feature_file = target_dir / f"{market_clean}_final_features.csv"
 
-        if not model_file.exists():
-            raise FileNotFoundError(
-                f"Trained model file not found for commodity '{comm}' market '{market}': {model_file}"
+            # Fallback to default MODEL_DIR if commodity is Onion or not found in target_dir
+            if not model_file.exists() and MODEL_DIR.exists():
+                fallback_model = MODEL_DIR / f"{market_clean}_final_model.json"
+                fallback_feature = MODEL_DIR / f"{market_clean}_final_features.csv"
+                if fallback_model.exists() and fallback_feature.exists():
+                    model_file = fallback_model
+                    feature_file = fallback_feature
+
+            # 3. Explicit runtime artifact validation with descriptive error messages
+            if not model_file.exists():
+                raise FileNotFoundError(
+                    f"Required model artifact not found for commodity '{comm}', market '{market}'. "
+                    f"Expected path: {model_file.resolve()}. "
+                    f"Please verify model artifact deployment."
+                )
+            if not feature_file.exists():
+                raise FileNotFoundError(
+                    f"Required feature CSV artifact not found for commodity '{comm}', market '{market}'. "
+                    f"Expected path: {feature_file.resolve()}. "
+                    f"Please ensure feature CSV artifacts are included in deployment."
+                )
+
+            # Load feature list from required feature CSV artifact
+            features_df = pd.read_csv(feature_file)
+            if "feature" not in features_df.columns:
+                raise ValueError(
+                    f"Invalid feature CSV artifact for '{comm}/{market}': column 'feature' not found in {feature_file.resolve()}"
+                )
+            feature_list = features_df["feature"].tolist()
+
+            # Load XGBoost model
+            model = xgb.XGBRegressor()
+            model.load_model(model_file)
+
+            logger.info(
+                f"Successfully loaded model for {comm} market '{market}' with {len(feature_list)} features from {model_file}"
             )
-        if not feature_file.exists():
-            raise FileNotFoundError(
-                f"Selected feature list file not found for commodity '{comm}' market '{market}': {feature_file}"
-            )
 
-        # Load feature list
-        features_df = pd.read_csv(feature_file)
-        feature_list = features_df["feature"].tolist()
-
-        # Load XGBoost model
-        model = xgb.XGBRegressor()
-        model.load_model(model_file)
-
-        logger.info(
-            f"Successfully loaded model for {comm} market '{market}' with {len(feature_list)} features from {model_file}"
-        )
-
-        self._loaded_models[cache_key] = model
-        self._loaded_features[cache_key] = feature_list
-        return model, feature_list
+            # Populate both shared process-level cache and instance-level cache
+            self._shared_models[shared_cache_key] = model
+            self._shared_features[shared_cache_key] = feature_list
+            self._loaded_models[cache_key] = model
+            self._loaded_features[cache_key] = feature_list
+            return model, feature_list
 
     def predict_next_price(
         self,
@@ -200,5 +286,22 @@ class ModelPredictor:
         )
 
         return output
+
+
+_shared_predictor_instance: Optional[ModelPredictor] = None
+_shared_predictor_lock = threading.Lock()
+
+
+def get_shared_predictor() -> ModelPredictor:
+    """
+    Return a shared ModelPredictor instance using the thread-safe model cache.
+    Ensures model lifecycle reuse across recommendation requests and future AI worker calls.
+    """
+    global _shared_predictor_instance
+    if _shared_predictor_instance is None:
+        with _shared_predictor_lock:
+            if _shared_predictor_instance is None:
+                _shared_predictor_instance = ModelPredictor()
+    return _shared_predictor_instance
 
 

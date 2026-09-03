@@ -41,5 +41,12 @@ marketlink:
       valid-test-otp: "123456"
       failing-test-otp: "000000"
 
+  model-app:
+    base-url: ${MODEL_APP_BASE_URL:http://localhost:8000}
+    connect-timeout-ms: ${MODEL_APP_CONNECT_TIMEOUT_MS:5000}
+    read-timeout-ms: ${MODEL_APP_READ_TIMEOUT_MS:15000}
+    query-timeout-ms: ${MODEL_APP_QUERY_TIMEOUT_MS:30000}
+
 server:
   port: 8080
+

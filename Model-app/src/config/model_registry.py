@@ -7,7 +7,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from src.config.config import PROCESSED_DATA_DIR
+from src.config.config import (
+    MARKET_METADATA_FILE,
+    MODEL_DIR,
+    PROCESSED_DATA_DIR,
+    get_model_dir,
+)
 
 
 MODEL_REGISTRY_FILE = PROCESSED_DATA_DIR / "models" / "model_registry.json"
@@ -175,4 +180,85 @@ def register_model(
 
     registry[c_key][m_key] = entry
     save_model_registry(registry)
+
+
+def validate_registered_artifacts() -> Dict[str, Any]:
+    """
+    Audit and validate all registered models, feature lists, and supporting datasets
+    against the filesystem. Returns comprehensive audit status.
+    """
+    results: Dict[str, Any] = {
+        "registry_file": str(MODEL_REGISTRY_FILE.resolve()),
+        "registry_file_exists": MODEL_REGISTRY_FILE.exists(),
+        "market_metadata_file": str(MARKET_METADATA_FILE.resolve()),
+        "market_metadata_file_exists": MARKET_METADATA_FILE.exists(),
+        "models": [],
+        "missing_artifacts": [],
+    }
+
+    registry = load_model_registry()
+    for comm, markets in registry.items():
+        target_dir = get_model_dir(commodity=comm)
+        for mkt, meta in markets.items():
+            model_fname = meta.get("model_file", f"{mkt}_final_model.json")
+            feat_fname = meta.get("feature_file", f"{mkt}_final_features.csv")
+
+            model_path = target_dir / model_fname
+            feat_path = target_dir / feat_fname
+
+            # Fallback for Onion at default MODEL_DIR
+            if not model_path.exists() and MODEL_DIR.exists():
+                fallback_m = MODEL_DIR / model_fname
+                if fallback_m.exists():
+                    model_path = fallback_m
+            if not feat_path.exists() and MODEL_DIR.exists():
+                fallback_f = MODEL_DIR / feat_fname
+                if fallback_f.exists():
+                    feat_path = fallback_f
+
+            hist_path = PROCESSED_DATA_DIR / f"{comm.lower()}_{mkt.lower()}_model.csv"
+
+            model_exists = model_path.exists()
+            feat_exists = feat_path.exists()
+            hist_exists = hist_path.exists()
+
+            entry_status = {
+                "commodity": comm,
+                "market": mkt,
+                "model_file": str(model_path.resolve()),
+                "model_exists": model_exists,
+                "feature_file": str(feat_path.resolve()),
+                "feature_exists": feat_exists,
+                "history_file": str(hist_path.resolve()),
+                "history_exists": hist_exists,
+                "usage_status": meta.get("usage_status", "UNKNOWN"),
+            }
+            results["models"].append(entry_status)
+
+            if not model_exists:
+                results["missing_artifacts"].append(f"Model file missing: {model_path.resolve()}")
+            if not feat_exists:
+                results["missing_artifacts"].append(f"Feature CSV missing: {feat_path.resolve()}")
+            if not hist_exists:
+                results["missing_artifacts"].append(f"Historical baseline data missing: {hist_path.resolve()}")
+
+    return results
+
+
+def validate_startup_artifacts(strict: bool = False) -> Dict[str, Any]:
+    """
+    Validate required model and data artifacts at startup/runtime.
+    If strict=True, raises FileNotFoundError with descriptive message listing missing artifacts.
+    Otherwise, returns structured audit results.
+    """
+    results = validate_registered_artifacts()
+    if strict and results["missing_artifacts"]:
+        missing_list = "\n  - ".join(results["missing_artifacts"])
+        raise FileNotFoundError(
+            f"Required runtime model/data artifacts are missing:\n  - {missing_list}\n"
+            f"Please verify deployment and ensure all required artifacts are present."
+        )
+    return results
+
+
 

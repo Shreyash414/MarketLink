@@ -5,11 +5,13 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env if present
-load_dotenv()
-
 # Workspace Root
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Load environment variables from .env if present
+load_dotenv(ROOT_DIR / ".env")
+load_dotenv(ROOT_DIR.parent / ".env")
+load_dotenv()
 
 # API Settings
 DATA_GOV_API_KEY = os.getenv("DATA_GOV_API_KEY")

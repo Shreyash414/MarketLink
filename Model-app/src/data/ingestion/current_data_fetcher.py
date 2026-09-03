@@ -22,6 +22,7 @@ from src.config.config import (
     CACHE_DIR,
     CURRENT_ONION_FILE,
     DATA_GOV_API_KEY,
+    RAW_DATA_DIR,
     get_current_data_file,
 )
 from src.utils.logger import logger
@@ -129,8 +130,11 @@ class CurrentDataFetcher:
         consecutive_failures = 0
         max_consecutive_failures = 1
 
-
-        if target_markets:
+        if not self.api_key:
+            logger.warning(
+                "DATA_GOV_API_KEY is not set. Skipping live API fetch and attempting local cache fallback."
+            )
+        elif target_markets:
             for market in target_markets:
                 if consecutive_failures >= max_consecutive_failures:
                     logger.warning(
@@ -239,7 +243,7 @@ class CurrentDataFetcher:
                 logger.error(f"Failed to read cache file {self.cache_file}: {e}")
 
         # Check raw fallback file if exists
-        fallback_raw = Path("data/raw/mandi_current_raw.csv")
+        fallback_raw = RAW_DATA_DIR / "mandi_current_raw.csv"
         if fallback_raw.exists():
             try:
                 df = pd.read_csv(fallback_raw)

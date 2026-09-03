@@ -21,7 +21,7 @@ from src.data.preprocessing.historical_merger import merge_current_with_history
 from src.economics.economics_engine import calculate_economics
 from src.features.inference_feature_generator import get_latest_inference_features
 from src.models.model_quality_gate import can_use_model, evaluate_model_gating
-from src.models.model_predictor import ModelPredictor
+from src.models.model_predictor import ModelPredictor, get_shared_predictor
 from src.recommendation.schemas import MandiRecommendationItem, RecommendationResult
 from src.risk.risk_engine import RiskEngine
 from src.utils.geo_utils import haversine_distance
@@ -42,7 +42,7 @@ class MandiRecommender:
     ):
         self.metadata_file = Path(metadata_file)
         self.fetcher = fetcher or CurrentDataFetcher()
-        self.predictor = predictor or ModelPredictor()
+        self.predictor = predictor or get_shared_predictor()
         self.risk_engine = risk_engine or RiskEngine()
         self._market_metadata: Optional[pd.DataFrame] = None
 
@@ -53,7 +53,8 @@ class MandiRecommender:
         """
         if not self.metadata_file.exists():
             raise FileNotFoundError(
-                f"Market metadata file not found at: {self.metadata_file}"
+                f"Required market metadata artifact not found at: {self.metadata_file.resolve()}. "
+                f"Please ensure market_metadata.csv is deployed under {self.metadata_file.parent.resolve()}."
             )
 
         df = pd.read_csv(self.metadata_file)
