@@ -361,3 +361,119 @@ json_output = response.to_json(indent=2)
 1. **Handling `"recommended_mandi": "NONE"`:** Indicates all local mandis were blocked by safety gates (e.g. models disabled or data invalid). Render a notice: *"Market forecasts are currently unavailable in your area."*
 2. **Warning Badges:** Display `item.warning` and `item.data_reliability_warning` in the UI as warning badges.
 3. **Primary Metric:** Mandis are sorted by `net_return` (Expected Net Return), not highest price.
+
+---
+
+## 11. Government Market Data Explorer
+
+### Overview & Architectural Separation
+The **Government Mandi Market Data Explorer** (`src/data/market_data_service.py`) provides independent current market data, historical price chart data, and market options discovery for **any commodity and mandi** available from official government sources (`data.gov.in` / AGMARKNET).
+
+> [!IMPORTANT]
+> **Strict Architectural Separation:**
+> - Market Data functions do **NOT** invoke XGBoost models, `ModelPredictor`, `ModelQualityGate`, `MandiRecommender`, `RiskEngine`, or `EconomicsEngine`.
+> - Market Data functions do **NOT** require an ML prediction model to exist. Farmers can view government market prices for any crop.
+> - ML Prediction functionality remains completely unchanged.
+
+### Key Python API Functions:
+
+#### 1. Current Market Data Query
+```python
+from src.data.market_data_service import get_current_market_data
+
+response = get_current_market_data(commodity="Potato", market="Agra")
+print(response.to_json(indent=2))
+```
+
+#### 2. Historical Market Data Query (Frontend Price Chart)
+```python
+from src.data.market_data_service import get_historical_market_data
+
+response = get_historical_market_data(
+    commodity="Potato",
+    market="Agra",
+    start_date="2024-01-01",
+    end_date="2024-06-30"
+)
+print(response.to_json(indent=2))
+```
+
+#### 3. Available Market Options Discovery
+```python
+from src.data.market_data_service import get_available_market_options
+
+options = get_available_market_options()
+print(options.to_json(indent=2))
+```
+
+### JSON Response Contracts
+
+#### Current Market Data JSON Response Example:
+```json
+{
+  "status": "SUCCESS",
+  "commodity": "Potato",
+  "market": "Agra",
+  "location": {
+    "state": "Uttar Pradesh",
+    "district": "Agra"
+  },
+  "data": {
+    "commodity": "Potato",
+    "market": "Agra",
+    "state": "Uttar Pradesh",
+    "district": "Agra",
+    "date": "2026-09-03",
+    "min_price": 1100.0,
+    "max_price": 1300.0,
+    "modal_price": 1200.0,
+    "arrival": 150.0,
+    "unit": "Rs/quintal"
+  },
+  "metadata": {
+    "source": "CACHE",
+    "freshness_status": "CACHE_STALE",
+    "data_age_days": 304,
+    "record_count": 1,
+    "warning": "Current market data for Potato Agra is from cached data (304 days old)."
+  }
+}
+```
+
+#### Historical Market Data JSON Response Example (Frontend Price Chart):
+```json
+{
+  "status": "SUCCESS",
+  "commodity": "Potato",
+  "market": "Agra",
+  "location": {
+    "state": "Uttar Pradesh",
+    "district": "Agra"
+  },
+  "date_range": {
+    "from": "2024-01-01",
+    "to": "2024-01-02"
+  },
+  "records": [
+    {
+      "date": "2024-01-01",
+      "min_price": 1000.0,
+      "max_price": 1200.0,
+      "modal_price": 1100.0,
+      "arrival": 50.0
+    },
+    {
+      "date": "2024-01-02",
+      "min_price": 1050.0,
+      "max_price": 1250.0,
+      "modal_price": 1150.0,
+      "arrival": 60.0
+    }
+  ],
+  "metadata": {
+    "source": "CACHE",
+    "record_count": 2
+  }
+}
+```
+
