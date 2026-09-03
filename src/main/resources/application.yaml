@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: agri-voice-assistant
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:native}
+  shutdown: graceful
+
+voice:
+  websocket:
+    path: ${VOICE_WS_PATH:/media}
+    max-text-message-size: ${VOICE_WS_MAX_TEXT_MESSAGE_SIZE:150000}
+
+gemini:
+  stt:
+    enabled: ${GEMINI_STT_ENABLED:true}
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_STT_MODEL:gemini-3.5-transcribe-live}
+    endpoint: ${GEMINI_STT_ENDPOINT:wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent}
+    sample-rate: ${GEMINI_STT_SAMPLE_RATE:16000}
+    mode: ${GEMINI_STT_MODE:VERBATIM}
+    language-codes: ${GEMINI_STT_LANGUAGE_CODES:}
+    custom-vocabulary: ${GEMINI_STT_CUSTOM_VOCABULARY:wheat,rice,paddy,maize,गेहूं,धान,चावल,मंडी,mandi,MSP,quintal,क्विंटल,किसान,FPO,फसल,भाव}
+    queue-capacity: ${GEMINI_STT_QUEUE_CAPACITY:20}
+    connect-timeout: ${GEMINI_STT_CONNECT_TIMEOUT:10s}
+    setup-timeout: ${GEMINI_STT_SETUP_TIMEOUT:10s}
+    send-timeout: ${GEMINI_STT_SEND_TIMEOUT:5s}
+  llm:
+    enabled: ${GEMINI_LLM_ENABLED:true}
+    api-key: ${GEMINI_LLM_API_KEY:${GEMINI_API_KEY:}}
+    model: ${GEMINI_LLM_MODEL:gemini-3.5-flash-lite}
+    endpoint: ${GEMINI_LLM_ENDPOINT:https://generativelanguage.googleapis.com/v1beta/interactions}
+    timeout: ${GEMINI_LLM_TIMEOUT:20s}
+    max-output-tokens: ${GEMINI_LLM_MAX_OUTPUT_TOKENS:96}
+    max-input-characters: ${GEMINI_LLM_MAX_INPUT_CHARACTERS:16000}
+    max-response-characters: ${GEMINI_LLM_MAX_RESPONSE_CHARACTERS:2000}
+    max-response-body-bytes: ${GEMINI_LLM_MAX_RESPONSE_BODY_BYTES:262144}
+    thinking-level: ${GEMINI_LLM_THINKING_LEVEL:minimal}
+
+conversation:
+  max-messages: ${CONVERSATION_MAX_MESSAGES:12}
+  max-context-characters: ${CONVERSATION_MAX_CONTEXT_CHARACTERS:8000}
+  max-message-characters: ${CONVERSATION_MAX_MESSAGE_CHARACTERS:2000}
+  duplicate-window-size: ${CONVERSATION_DUPLICATE_WINDOW_SIZE:32}
+  fallback-response: ${CONVERSATION_FALLBACK_RESPONSE:I'm sorry, I couldn't process that right now. Please try again.}
+  system-instruction-override: ${CONVERSATION_SYSTEM_INSTRUCTION_OVERRIDE:}
